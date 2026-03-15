@@ -31,7 +31,7 @@ HTTP Client
 │  API Layer                                                      │
 │  AnalysisController  ──►  AnalysisReportMapper  ──►  Response  │
 └──────────────┬──────────────────────────────────────────────────┘
-               │ execute(taxonKey, limit, country)
+               │ execute(request params)
                ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │  Application Layer                                              │
@@ -72,17 +72,21 @@ HTTP Client
 All nine rules implement the `QualityRule` interface and are evaluated independently for every
 occurrence record. A rule either **passes** or **fails** — there is no partial credit per rule.
 
-| # | Rule ID                    | Passes when                                                                      | Dimension    |
-|---|----------------------------|----------------------------------------------------------------------------------|--------------|
-| 1 | `COORDINATES_PRESENT`      | `decimalLatitude` and `decimalLongitude` are both non-null                       | Geographic   |
-| 2 | `NO_GEOSPATIAL_ISSUES`     | Issues list contains none of: `ZERO_COORDINATE`, `COORDINATE_OUT_OF_RANGE`, `COORDINATE_INVALID`, `COORDINATE_ROUNDED`, `GEODETIC_DATUM_INVALID`, `COUNTRY_COORDINATE_MISMATCH`, `COORDINATE_REPROJECTION_FAILED` | Geographic |
-| 3 | `EVENT_DATE_PRESENT`       | `eventDate` is non-null and non-blank                                            | Temporal     |
-| 4 | `TAXON_RANK_AT_SPECIES_LEVEL` | `taxonRank` equals `"SPECIES"`                                                | Taxonomic    |
-| 5 | `NO_TAXONOMY_ISSUES`       | Issues list contains none of: `TAXON_MATCH_FUZZY`, `TAXON_MATCH_HIGHERRANK`, `TAXON_MATCH_NONE`, `SCIENTIFIC_NAME_ID_NOT_FOUND` | Taxonomic |
-| 6 | `COUNTRY_PRESENT`          | `countryCode` is non-null and non-blank                                          | Metadata     |
-| 7 | `BASIS_OF_RECORD_PRESENT`  | `basisOfRecord` is non-null and non-blank                                        | Metadata     |
-| 8 | `RECORDED_BY_PRESENT`      | `recordedBy` is non-null and non-blank                                           | Informational|
-| 9 | `HAS_MEDIA`                | `media` list is non-null and non-empty                                           | Informational|
+| # | Rule ID                       | Passes when                                                                      | Dimension     | Affects Score       |
+|---|-------------------------------|----------------------------------------------------------------------------------|---------------|---------------------|
+| 1 | `COORDINATES_PRESENT`         | `decimalLatitude` and `decimalLongitude` are both non-null                       | Geographic    | Yes                 |
+| 2 | `NO_GEOSPATIAL_ISSUES`        | Issues list contains none of: `ZERO_COORDINATE`, `COORDINATE_OUT_OF_RANGE`, `COORDINATE_INVALID`, `COORDINATE_ROUNDED`, `GEODETIC_DATUM_INVALID`, `COUNTRY_COORDINATE_MISMATCH`, `COORDINATE_REPROJECTION_FAILED` | Geographic | Yes |
+| 3 | `EVENT_DATE_PRESENT`          | `eventDate` is non-null and non-blank                                            | Temporal      | Yes                 |
+| 4 | `TAXON_RANK_AT_SPECIES_LEVEL` | `taxonRank` equals `"SPECIES"`                                                   | Taxonomic     | Yes                 |
+| 5 | `NO_TAXONOMY_ISSUES`          | Issues list contains none of: `TAXON_MATCH_FUZZY`, `TAXON_MATCH_HIGHERRANK`, `TAXON_MATCH_NONE`, `SCIENTIFIC_NAME_ID_NOT_FOUND` | Taxonomic | Yes |
+| 6 | `COUNTRY_PRESENT`             | `countryCode` is non-null and non-blank                                          | Metadata      | Yes                 |
+| 7 | `BASIS_OF_RECORD_PRESENT`     | `basisOfRecord` is non-null and non-blank                                        | Metadata      | Yes                 |
+| 8 | `RECORDED_BY_PRESENT`         | `recordedBy` is non-null and non-blank                                           | Informational | No (informational)  |
+| 9 | `HAS_MEDIA`                   | `media` list is non-null and non-empty                                           | Informational | No (informational)  |
+
+> Informational rules (`RECORDED_BY_PRESENT`, `HAS_MEDIA`) are evaluated and appear in the raw
+> metrics output, but their pass rate is not fed into the weighted score formula. They exist to
+> give dataset consumers richer context without skewing the completeness grade.
 
 ---
 
@@ -102,9 +106,9 @@ Metadata    =        avg(countryCoverage, basisOfRecordCoverage) × 0.15
 Total Score = Geographic + Temporal + Taxonomic + Metadata   ∈ [0, 100]
 ```
 
-All coverage values are percentages (0–100). The issue-ratio penalty reduces a dimension score when
-a high proportion of records carry flagged issues. Dimension scores are floored at 0 — a severe
-issue ratio cannot produce a negative contribution to the total.
+> **Note:** coverage values and issue ratios are percentages (0–100). The penalty factor is
+> intentionally aggressive — a `geospatialIssueRatio` above 10% floors the geographic score to 0.
+> This is a known V1 limitation documented in the codebase.
 
 ### Dimension weights
 
@@ -170,13 +174,13 @@ Content-Type: application/json
   "requestedAt": "2025-06-01T12:00:00",
   "recordsAnalyzed": 100,
   "returnedByGbif": 100,
-  "completenessScore": 74.32,
-  "scoreGrade": "B",
+  "completenessScore": 62.00,
+  "scoreGrade": "C",
   "scoreBreakdown": {
-    "geographicScore": 29.75,
-    "temporalScore":   18.20,
+    "geographicScore": 11.90,
+    "temporalScore":   18.00,
     "taxonomicScore":  21.00,
-    "metadataScore":    5.37
+    "metadataScore":   11.10
   },
   "metrics": {
     "coordinatesCoverage":    85.0,
@@ -207,8 +211,8 @@ Content-Type: application/json
     "scientificName": "Canis lupus Linnaeus, 1758",
     "requestedAt": "2025-06-01T12:00:00",
     "recordsAnalyzed": 100,
-    "completenessScore": 74.32,
-    "scoreGrade": "B"
+    "completenessScore": 62.00,
+    "scoreGrade": "C"
   }
 ]
 ```
@@ -255,7 +259,7 @@ existing logic. Adding a new rule requires writing one class and registering it 
 `RuleEngineConfig` — no other code changes. This is a direct application of the Open/Closed
 Principle and the pattern makes the rule set self-documenting in the configuration class.
 
-**Why a separate normalisation step?**
+**Why a separate normalizer step?**
 `GbifOccurrence` is shaped by the GBIF API contract and carries Jackson annotations. `NormalizedOccurrence` is a clean domain object with no framework dependencies. The `OccurrenceNormalizer` forms an anti-corruption layer: all rules operate on the domain type, and changes to the GBIF response schema are absorbed in a single place.
 
 ---
@@ -276,7 +280,7 @@ Principle and the pattern makes the rule set self-documenting in the configurati
 | HTTP client        | `GbifClientIntegrationTest`              | WireMock standalone         | 4     |
 | JPA slice          | `AnalysisReportRepositoryTest`           | H2 (`@DataJpaTest`)         | 7     |
 | End-to-end         | `AnalysisFlowIntegrationTest`            | `@SpringBootTest` + WireMock + H2 | 2 |
-| Context smoke      | `GibfQualityMonitorApplicationTests`     | `@SpringBootTest`           | 1     |
+| Context smoke      | `GbifQualityMonitorApplicationTests`     | `@SpringBootTest`           | 1     |
 | **Total**          |                                          |                             | **165** |
 
 The test pyramid is respected: the bulk of coverage lives in fast, focused unit tests; integration
@@ -297,7 +301,7 @@ realistic conditions without hitting the real GBIF API.
 
 ```bash
 git clone https://github.com/lopezviktor/gbif-quality-monitor.git
-cd gibf-quality-monitor
+cd gbif-quality-monitor
 mvn spring-boot:run
 ```
 
@@ -329,14 +333,14 @@ curl -s http://localhost:8080/api/v1/analyses/<reportId> | jq .
 | Property                | Default                        | Description                        |
 |-------------------------|--------------------------------|------------------------------------|
 | `gbif.api.base-url`     | `https://api.gbif.org/v1`      | GBIF API base URL                  |
-| `spring.datasource.url` | `jdbc:h2:mem:gbifqualitydb`    | Switch to PostgreSQL for production|
+| `spring.datasource.url` | `jdbc:h2:mem:gbifdb`           | Switch to PostgreSQL for production|
 
 ---
 
 ## Project Structure
 
 ```
-src/main/java/com/lopezviktor/gbifqualitymonitor/
+src/main/java/com/victorlopez/gbifqualitymonitor/
 │
 ├── api/
 │   ├── controller/         # AnalysisController — REST endpoints (POST, GET ×2)
