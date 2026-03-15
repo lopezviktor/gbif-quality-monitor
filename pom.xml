@@ -9,9 +9,9 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.victorlopez</groupId>
-	<artifactId>gibf-quality-monitor</artifactId>
+	<artifactId>gbif-quality-monitor</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>gibf-quality-monitor</name>
+	<name>gbif-quality-monitor</name>
 	<description>Backend service that analyses the quality of biodiversity occurrence data from GBIF, applying custom validation rules, weighted scoring and automated filtering recommendations.</description>
 	<url/>
 	<licenses>
