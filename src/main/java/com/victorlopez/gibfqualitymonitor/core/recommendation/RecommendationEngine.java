@@ -2,9 +2,12 @@ package com.victorlopez.gibfqualitymonitor.core.recommendation;
 
 import com.victorlopez.gibfqualitymonitor.domain.model.QualityMetrics;
 
+import org.springframework.stereotype.Component;
+
 import java.util.ArrayList;
 import java.util.List;
 
+@Component
 public class RecommendationEngine {
 
     // Thresholds

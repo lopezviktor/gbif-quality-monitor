@@ -3,8 +3,11 @@ package com.victorlopez.gibfqualitymonitor.core.metrics;
 import com.victorlopez.gibfqualitymonitor.domain.model.QualityMetrics;
 import com.victorlopez.gibfqualitymonitor.domain.model.RuleResult;
 
+import org.springframework.stereotype.Component;
+
 import java.util.List;
 
+@Component
 public class MetricsAggregator {
 
     private static final String COORDINATES_PRESENT        = "COORDINATES_PRESENT";

@@ -2,7 +2,9 @@ package com.victorlopez.gibfqualitymonitor.core.scoring;
 
 import com.victorlopez.gibfqualitymonitor.domain.model.QualityMetrics;
 import com.victorlopez.gibfqualitymonitor.domain.model.ScoringResult;
+import org.springframework.stereotype.Component;
 
+@Component
 public class ScoreCalculator {
 
     // Dimension weights (must sum to 1.0)
