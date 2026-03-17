@@ -143,32 +143,24 @@ public interface QualityRule {
 
 ---
 
-## Rules Already Implemented (core/rules/impl)
+## Rules Implemented (core/rules/impl)
 
-| Class | RULE_ID | Logic |
-|---|---|---|
-| CoordinatesPresentRule | COORDINATES_PRESENT | lat != null && lon != null |
-| EventDatePresentRule | EVENT_DATE_PRESENT | eventDate != null && !isBlank() |
-| BasisOfRecordPresentRule | BASIS_OF_RECORD_PRESENT | basisOfRecord != null && !isBlank() |
-
-Each rule has its own test class in `src/test/.../core/rules/`.
-
----
-
-## Rules To Implement (TDD — test first, then implementation)
-
-Implement each rule following the exact same pattern as the existing ones.
+All 10 rules implement the `QualityRule` interface. Each has its own test class in `src/test/.../core/rules/`.
 
 | Class | RULE_ID | Logic | Edge cases |
 |---|---|---|---|
+| CoordinatesPresentRule | COORDINATES_PRESENT | lat != null && lon != null | null lat, null lon, both null |
+| EventDatePresentRule | EVENT_DATE_PRESENT | eventDate != null && !isBlank() | null, blank, empty string |
+| BasisOfRecordPresentRule | BASIS_OF_RECORD_PRESENT | basisOfRecord != null && !isBlank() | null, blank ("   "), empty |
 | TaxonRankAtSpeciesLevelRule | TAXON_RANK_AT_SPECIES_LEVEL | taxonRank == "SPECIES" | null, "GENUS", "UNRANKED", "FAMILY" |
 | CountryPresentRule | COUNTRY_PRESENT | countryCode != null && !isBlank() | null, blank, empty string |
 | NoGeospatialIssuesRule | NO_GEOSPATIAL_ISSUES | issues contains no geospatial flags | empty list, null list, mixed flags |
 | NoTaxonomyIssuesRule | NO_TAXONOMY_ISSUES | issues contains no taxonomy flags | empty list, null list, mixed flags |
+| NoTemporalIssuesRule | NO_TEMPORAL_ISSUES | issues contains no temporal flags | empty list, null list, mixed flags |
 | RecordedByPresentRule | RECORDED_BY_PRESENT | recordedBy != null && !isBlank() | null, blank, empty string |
 | HasMediaRule | HAS_MEDIA | hasMedia == true | false, true |
 
-### Geospatial issue flags to detect (NoGeospatialIssuesRule):
+### Geospatial issue flags (NoGeospatialIssuesRule):
 ```
 ZERO_COORDINATE
 COORDINATE_OUT_OF_RANGE
@@ -179,12 +171,19 @@ COUNTRY_COORDINATE_MISMATCH
 COORDINATE_REPROJECTION_FAILED
 ```
 
-### Taxonomy issue flags to detect (NoTaxonomyIssuesRule):
+### Taxonomy issue flags (NoTaxonomyIssuesRule):
 ```
 TAXON_MATCH_FUZZY
 TAXON_MATCH_HIGHERRANK
 TAXON_MATCH_NONE
 SCIENTIFIC_NAME_ID_NOT_FOUND
+```
+
+### Temporal issue flags (NoTemporalIssuesRule):
+```
+RECORDED_DATE_INVALID
+RECORDED_DATE_UNLIKELY
+RECORDED_DATE_MISMATCH
 ```
 
 ---

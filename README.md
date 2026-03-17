@@ -55,9 +55,9 @@ HTTP Client
    │         │
    │         ▼ List<NormalizedOccurrence>
    │
-   ├─3─► RuleEngine  (9 QualityRule implementations)
+   ├─3─► RuleEngine  (10 QualityRule implementations)
    │         │
-   │         ▼ List<RuleResult>  (n records × 9 rules)
+   │         ▼ List<RuleResult>  (n records × 10 rules)
    │
    ├─4─► MetricsAggregator
    │         │
@@ -78,7 +78,7 @@ HTTP Client
 
 ## Quality Rules
 
-All nine rules implement the `QualityRule` interface and are evaluated independently for every
+All ten rules implement the `QualityRule` interface and are evaluated independently for every
 occurrence record. A rule either **passes** or **fails** — there is no partial credit per rule.
 
 | # | Rule ID                       | Passes when                                                                      | Dimension     | Affects Score       |
@@ -86,12 +86,13 @@ occurrence record. A rule either **passes** or **fails** — there is no partial
 | 1 | `COORDINATES_PRESENT`         | `decimalLatitude` and `decimalLongitude` are both non-null                       | Geographic    | Yes                 |
 | 2 | `NO_GEOSPATIAL_ISSUES`        | Issues list contains none of: `ZERO_COORDINATE`, `COORDINATE_OUT_OF_RANGE`, `COORDINATE_INVALID`, `COORDINATE_ROUNDED`, `GEODETIC_DATUM_INVALID`, `COUNTRY_COORDINATE_MISMATCH`, `COORDINATE_REPROJECTION_FAILED` | Geographic | Yes |
 | 3 | `EVENT_DATE_PRESENT`          | `eventDate` is non-null and non-blank                                            | Temporal      | Yes                 |
-| 4 | `TAXON_RANK_AT_SPECIES_LEVEL` | `taxonRank` equals `"SPECIES"`                                                   | Taxonomic     | Yes                 |
-| 5 | `NO_TAXONOMY_ISSUES`          | Issues list contains none of: `TAXON_MATCH_FUZZY`, `TAXON_MATCH_HIGHERRANK`, `TAXON_MATCH_NONE`, `SCIENTIFIC_NAME_ID_NOT_FOUND` | Taxonomic | Yes |
-| 6 | `COUNTRY_PRESENT`             | `countryCode` is non-null and non-blank                                          | Metadata      | Yes                 |
-| 7 | `BASIS_OF_RECORD_PRESENT`     | `basisOfRecord` is non-null and non-blank                                        | Metadata      | Yes                 |
-| 8 | `RECORDED_BY_PRESENT`         | `recordedBy` is non-null and non-blank                                           | Informational | No (informational)  |
-| 9 | `HAS_MEDIA`                   | `media` list is non-null and non-empty                                           | Informational | No (informational)  |
+| 4 | `NO_TEMPORAL_ISSUES`          | Issues list contains none of: `RECORDED_DATE_INVALID`, `RECORDED_DATE_UNLIKELY`, `RECORDED_DATE_MISMATCH` | Temporal | Yes |
+| 5 | `TAXON_RANK_AT_SPECIES_LEVEL` | `taxonRank` equals `"SPECIES"`                                                   | Taxonomic     | Yes                 |
+| 6 | `NO_TAXONOMY_ISSUES`          | Issues list contains none of: `TAXON_MATCH_FUZZY`, `TAXON_MATCH_HIGHERRANK`, `TAXON_MATCH_NONE`, `SCIENTIFIC_NAME_ID_NOT_FOUND` | Taxonomic | Yes |
+| 7 | `COUNTRY_PRESENT`             | `countryCode` is non-null and non-blank                                          | Metadata      | Yes                 |
+| 8 | `BASIS_OF_RECORD_PRESENT`     | `basisOfRecord` is non-null and non-blank                                        | Metadata      | Yes                 |
+| 9 | `RECORDED_BY_PRESENT`         | `recordedBy` is non-null and non-blank                                           | Informational | No (informational)  |
+| 10 | `HAS_MEDIA`                  | `media` list is non-null and non-empty                                           | Informational | No (informational)  |
 
 > Informational rules (`RECORDED_BY_PRESENT`, `HAS_MEDIA`) are evaluated and appear in the raw
 > metrics output, but their pass rate is not fed into the weighted score formula. They exist to
@@ -277,9 +278,9 @@ Principle and the pattern makes the rule set self-documenting in the configurati
 
 | Level              | Class(es)                                | Tool                        | Tests |
 |--------------------|------------------------------------------|-----------------------------|-------|
-| Unit — rules       | `*RuleTest` (9 classes)                  | JUnit 5 + AssertJ           | 43    |
+| Unit — rules       | `*RuleTest` (10 classes)                 | JUnit 5 + AssertJ           | 50    |
 | Unit — engine      | `RuleEngineTest`                         | JUnit 5 + AssertJ           | 6     |
-| Unit — metrics     | `MetricsAggregatorTest`                  | JUnit 5 + AssertJ           | 17    |
+| Unit — metrics     | `MetricsAggregatorTest`                  | JUnit 5 + AssertJ           | 20    |
 | Unit — scoring     | `ScoreCalculatorTest`                    | JUnit 5 + AssertJ           | 20    |
 | Unit — recommendations | `RecommendationEngineTest`           | JUnit 5 + AssertJ           | 16    |
 | Unit — normalizer  | `OccurrenceNormalizerTest`               | JUnit 5 + AssertJ           | 9     |
@@ -290,7 +291,7 @@ Principle and the pattern makes the rule set self-documenting in the configurati
 | JPA slice          | `AnalysisReportRepositoryTest`           | H2 (`@DataJpaTest`)         | 7     |
 | End-to-end         | `AnalysisFlowIntegrationTest`            | `@SpringBootTest` + WireMock + H2 | 2 |
 | Context smoke      | `GbifQualityMonitorApplicationTests`     | `@SpringBootTest`           | 1     |
-| **Total**          |                                          |                             | **165** |
+| **Total**          |                                          |                             | **175** |
 
 The test pyramid is respected: the bulk of coverage lives in fast, focused unit tests; integration
 tests verify the seams between layers; and two end-to-end tests confirm the full pipeline under
@@ -367,7 +368,7 @@ src/main/java/com/victorlopez/gbifqualitymonitor/
 │   ├── normalizer/         # OccurrenceNormalizer — GbifOccurrence → NormalizedOccurrence
 │   ├── recommendation/     # RecommendationEngine — QualityMetrics → List<String>
 │   ├── rules/              # QualityRule interface + RuleEngine orchestrator
-│   │   └── impl/           # 9 QualityRule implementations
+│   │   └── impl/           # 10 QualityRule implementations
 │   └── scoring/            # ScoreCalculator — QualityMetrics → ScoringResult
 │
 ├── domain/
