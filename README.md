@@ -11,12 +11,9 @@
 
 ## Live Demo
 
-| | URL |
-|---|---|
-| **Swagger UI** | https://gbif-quality-monitor-production.up.railway.app/swagger-ui/index.html |
-| **API Base** | https://gbif-quality-monitor-production.up.railway.app/api/v1/analyses |
+### Deployment
 
----
+> ⚠️ The public demo is temporarily unavailable while the deployment configuration is being reviewed.
 
 ## What it does
 
